@@ -11,10 +11,10 @@ import sys
 BLOCKSIZE = 1024000
 DB_LOCATION = str(Path.home()) + '/.local/banish'
 
-print(DB_LOCATION)
 parser = argparse.ArgumentParser(description='Banish files')
 parser.add_argument('filename')
-
+parser.add_argument('--scan', dest='scan', action='store_true')
+parser.add_argument('--dump', dest='dump', action='store_true')
 
 def check_dirs():
     if not os.path.exists(DB_LOCATION):
@@ -31,7 +31,8 @@ def get_db():
     if database_is_missing(db_path):
         conn = sqlite3.connect(db_path)
         conn.execute('''CREATE TABLE signatures (hash blob[40], size integer)''')
-        conn.execute('''CREATE UNIQUE INDEX signatures_idx ON signatures (hash, size)''')
+        conn.execute('''CREATE UNIQUE INDEX signatures_hashsize_idx ON signatures (hash, size)''')
+        conn.execute('''CREATE INDEX signatures_size_idx ON signatures (size)''')
         return conn
     else:
         return sqlite3.connect(db_path)
@@ -58,8 +59,19 @@ def checksum(fd):
         size += len(buf)
     return (hasher.digest(), fd.tell())
 
+def dump():
+   conn = get_db()
+   res = conn.execute('SELECT hex(hash), size FROM signatures')
+   for row in res:
+      sys.stdout.write('{} {}\n'.format(*row))
+      
 
 if __name__ == '__main__':
    args = parser.parse_args()
-   if args.filename:
+
+   if args.dump:
+      dump()
+   elif args.scan:
+      print('scan', args.filename)
+   elif args.filename:
        print(banish(args.filename))
