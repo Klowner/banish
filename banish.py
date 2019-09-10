@@ -61,7 +61,7 @@ def checksum(fd):
 
 def dump():
    conn = get_db()
-   res = conn.execute('SELECT hex(hash), size FROM signatures')
+   res = conn.execute('SELECT lower(hex(hash)), size FROM signatures ORDER BY size')
    for row in res:
       sys.stdout.write('{} {}\n'.format(*row))
       
